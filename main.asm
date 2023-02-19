@@ -186,9 +186,9 @@ draw_triangle:
 
 direct:
     mov dword[i], 0
-    boucle_i:
+    boucle_i_direct:
         mov dword[j], 0
-        boucle_j:
+        boucle_j_direct:
             ; Calcul AB -> AP.
             mov eax, [array_x]
             mov ebx, [array_y]
