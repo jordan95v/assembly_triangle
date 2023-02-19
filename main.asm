@@ -31,7 +31,7 @@ extern exit
 %define DWORD	4
 %define WORD	2
 %define BYTE	1
-%define nbPoints 4
+%define number_triangle 3
 
 
 global main
@@ -47,13 +47,16 @@ window:		    resq	1
 gc:		        resq	1
 
 section .data
-array_x:      times 3 dd 0
-array_y:      times 3 dd 0
-event:		  times	24 dq 0
-i: dd 0
-j: dd 0
-nb: dd 0
-fmt: db "%d", 10, 0
+array_x:        times 3 dd 0
+array_y:        times 3 dd 0
+event:		    times 24 dq 0
+colors:         times 6 dd 0x000000, 0xFFAA00, 0xFF00FF, 0x0000FF, 0x00FF00, 0xFF0000
+color_counter:  dd 0
+i:              dd 0
+j:              dd 0
+number_of_triangle: dd 0
+nb:             dd 0
+fmt:            db "%d", 10, 0
 section .text
 
 global main
@@ -113,9 +116,10 @@ boucle: ; boucle de gestion des évènements
     jmp boucle
 
 draw:
-    inc dword[nb]
-    cmp dword[nb], 1
-    ja draw_triangle
+    ; inc dword[nb]
+    ; mov ecx, number_triangle
+    ; cmp dword[nb], ecx
+    ; ja draw_triangle
 
     xor r14, r14
     generation_x:
@@ -170,6 +174,17 @@ draw_triangle:
     push qword[array_y+2*DWORD]		; coordonnée destination en y
     call XDrawLine
 
+    reset_color:
+        mov rdi, qword[display_name]
+        mov rsi, qword[gc]
+        mov ecx, [color_counter]
+        mov edx, [colors+ecx*DWORD]
+        call XSetForeground
+
+        inc dword[color_counter]
+        cmp dword[color_counter], 6
+        je reset_color
+
     ; Récupération des coordonnées des points A, B, et C dans les tableaux array_x et array_y
     mov eax, dword[array_x+1*DWORD]          ;  bx
     mov ebx, dword[array_y+1*DWORD]          ;  by
@@ -184,8 +199,10 @@ draw_triangle:
     jl direct             ; Si résultat < 0, saut vers direct
     jmp indirect
 
+
 direct:
     mov dword[i], 0
+
     boucle_i_direct:
         mov dword[j], 0
         boucle_j_direct:
@@ -306,6 +323,14 @@ indirect:
 flush:
     mov rdi,qword[display_name]
     call XFlush
+
+    ; Fait en sorte de dessiner le bon nombre de triangle.
+    inc dword[number_of_triangle]
+    mov ecx, number_triangle
+    cmp dword[number_of_triangle], ecx
+    jl draw
+
+    ; Sinon on jump à la gestion d'évenements.
     jmp boucle
     mov rax,34
     syscall
