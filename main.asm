@@ -31,7 +31,7 @@ extern exit
 %define DWORD	4
 %define WORD	2
 %define BYTE	1
-%define number_triangle 5
+%define number_triangle 6
 
 
 global main
@@ -54,6 +54,9 @@ colors:         times 6 dd 0x000000, 0xFFAA00, 0xFF00FF, 0x0000FF, 0x00FF00, 0xF
 color_counter:  dd 0
 i:              dd 0
 j:              dd 0
+res_a: dd 0
+res_b: dd 0
+res_c: dd 0
 count: dd 0
 nb:             dd 0
 triangle_determinant: dd 0
@@ -201,7 +204,7 @@ draw_triangle:
             mov r8d, [i]
             mov r9d, [j]
             call get_determinant
-            mov r11d, ecx
+            mov dword[res_a], ecx
 
             ; Calcul BC -> BP.
             mov eax, [array_x+1*DWORD]
@@ -211,7 +214,7 @@ draw_triangle:
             mov r8d, dword[i]
             mov r9d, dword[j]
             call get_determinant
-            mov r12d, ecx
+            mov dword[res_b], ecx
 
             ; Calcul CA -> CP.
             mov eax, [array_x+2*DWORD]
@@ -221,27 +224,27 @@ draw_triangle:
             mov r8d, dword[i]
             mov r9d, dword[j]
             call get_determinant
-            mov r13d, ecx
+            mov dword[res_c], ecx
 
             cmp dword[triangle_determinant], 0
             jl direct
             jmp indirect
 
             direct:
-                cmp r11d, 0
+                cmp dword[res_a], 0
                 jl next
-                cmp r12d, 0
+                cmp dword[res_b], 0
                 jl next
-                cmp r13d, 0
+                cmp dword[res_c], 0
                 jl next
                 jmp draw_point
 
             indirect:
-                cmp r11d, 0
+                cmp dword[res_a], 0
                 jg next
-                cmp r12d, 0
+                cmp dword[res_b], 0
                 jg next
-                cmp r13d, 0
+                cmp dword[res_c], 0
                 jg next
                 jmp draw_point
 
