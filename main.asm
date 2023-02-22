@@ -31,7 +31,7 @@ extern exit
 %define DWORD	4
 %define WORD	2
 %define BYTE	1
-%define number_triangle 3
+%define number_triangle 5
 
 
 global main
@@ -54,7 +54,7 @@ colors:         times 6 dd 0x000000, 0xFFAA00, 0xFF00FF, 0x0000FF, 0x00FF00, 0xF
 color_counter:  dd 0
 i:              dd 0
 j:              dd 0
-number_of_triangle: dd 0
+count: dd 0
 nb:             dd 0
 fmt:            db "%d", 10, 0
 section .text
@@ -111,16 +111,8 @@ boucle: ; boucle de gestion des évènements
     cmp dword[event], ConfigureNotify	; à l'apparition de la fenêtre
     je draw						        ; on saute au label 'dessin'
 
-    cmp dword[event], KeyPress			; Si on appuie sur une touche
-    je closeDisplay						; on saute au label 'closeDisplay' qui ferme la fenêtre
-    jmp boucle
-
+mov dword[count], 0
 draw:
-    ; inc dword[nb]
-    ; mov ecx, number_triangle
-    ; cmp dword[nb], ecx
-    ; ja draw_triangle
-
     xor r14, r14
     generation_x:
         call random_number
@@ -319,21 +311,25 @@ indirect:
 
     jmp flush
 
-; Fin du dessin.
 flush:
+    ; Fait en sorte de dessiner le bon nombre de triangle.
+    inc dword[count]
+    cmp dword[count], number_triangle
+    jb draw
+
     mov rdi, qword[display_name]
     call XFlush
 
-    ; Fait en sorte de dessiner le bon nombre de triangle.
-    inc dword[number_of_triangle]
-    mov ecx, number_triangle
-    cmp dword[number_of_triangle], ecx
-    jl draw
+end:
+    ; Obligé, sinon le programme dessinait un triangle en plus :(
 
-    ; Sinon on jump à la gestion d'évenements.
-    jmp boucle
-    mov rax, 34
-    syscall
+    mov rdi,qword[display_name]
+    mov rsi,event
+    call XNextEvent
+
+    cmp dword[event], KeyPress            
+    je closeDisplay                        
+    jmp end
 
 closeDisplay:
     mov     rax, qword[display_name]
