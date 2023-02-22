@@ -56,7 +56,7 @@ i:              dd 0
 j:              dd 0
 count: dd 0
 nb:             dd 0
-fmt:            db "%d", 10, 0
+triangle_determinant: dd 0
 section .text
 
 global main
@@ -187,17 +187,12 @@ draw_triangle:
 
     ; Comparaison du résultat avec 0
     call get_determinant
-    cmp ecx, 0
-    jl direct             ; Si résultat < 0, saut vers direct
-    jmp indirect
+    mov dword[triangle_determinant], ecx
 
-
-direct:
     mov dword[i], 0
-
-    boucle_i_direct:
+    boucle_i:
         mov dword[j], 0
-        boucle_j_direct:
+        boucle_j:
             ; Calcul AB -> AP.
             mov eax, [array_x]
             mov ebx, [array_y]
@@ -206,8 +201,7 @@ direct:
             mov r8d, [i]
             mov r9d, [j]
             call get_determinant
-            cmp ecx, 0
-            jl next_direct
+            mov r11d, ecx
 
             ; Calcul BC -> BP.
             mov eax, [array_x+1*DWORD]
@@ -217,8 +211,7 @@ direct:
             mov r8d, dword[i]
             mov r9d, dword[j]
             call get_determinant
-            cmp ecx, 0
-            jl next_direct
+            mov r12d, ecx
 
             ; Calcul CA -> CP.
             mov eax, [array_x+2*DWORD]
@@ -228,86 +221,49 @@ direct:
             mov r8d, dword[i]
             mov r9d, dword[j]
             call get_determinant
-            cmp ecx, 0
-            jl next_direct
+            mov r13d, ecx
 
-            ; On dessine le point si tout les determinants sont positifs.
-            mov rdi, qword[display_name]
-            mov rsi, qword[window]
-            mov rdx, qword[gc]
-            mov ecx, dword[i]
-            mov r8d, dword[j]
-            call XDrawPoint
+            cmp dword[triangle_determinant], 0
+            jl direct
+            jmp indirect
 
-            next_direct:
+            direct:
+                cmp r11d, 0
+                jl next
+                cmp r12d, 0
+                jl next
+                cmp r13d, 0
+                jl next
+                jmp draw_point
+
+            indirect:
+                cmp r11d, 0
+                jg next
+                cmp r12d, 0
+                jg next
+                cmp r13d, 0
+                jg next
+                jmp draw_point
+
+            draw_point:
+                ; On dessine le point si tout les determinants sont positifs.
+                mov rdi, qword[display_name]
+                mov rsi, qword[window]
+                mov rdx, qword[gc]
+                mov ecx, dword[i]
+                mov r8d, dword[j]
+                call XDrawPoint
+
+            next:
                 inc dword[j]
                 cmp dword[j], 400
-                jbe boucle_j_direct
-            ;FIN BOUCLE J
+                jbe boucle_j
+            ; Fin boucle j
 
     inc dword[i]
     cmp dword[i], 400
-    jb boucle_i_direct
-    ; FIN BOUCLE I
-
-    jmp flush
-
-indirect:
-    mov dword[i], 0
-    boucle_i_indirect:
-        mov dword[j], 0
-        boucle_j_indirect:
-            ; Calcul AB -> AP.
-            mov eax, [array_x]
-            mov ebx, [array_y]
-            mov ecx, [array_x+1*DWORD]
-            mov edx, [array_y+1*DWORD]
-            mov r8d, [i]
-            mov r9d, [j]
-            call get_determinant
-            cmp ecx, 0
-            jg next_indirect
-
-            ; Calcul BC -> BP.
-            mov eax, [array_x+1*DWORD]
-            mov ebx, [array_y+1*DWORD]
-            mov ecx, [array_x+2*DWORD]
-            mov edx, [array_y+2*DWORD]
-            mov r8d, dword[i]
-            mov r9d, dword[j]
-            call get_determinant
-            cmp ecx, 0
-            jg next_indirect
-
-            ; Calcul CA -> CP.
-            mov eax, [array_x+2*DWORD]
-            mov ebx, [array_y+2*DWORD]
-            mov ecx, [array_x]
-            mov edx, [array_y]
-            mov r8d, dword[i]
-            mov r9d, dword[j]
-            call get_determinant
-            cmp ecx, 0
-            jg next_indirect
-
-            ; On dessine le point si tout les determinants sont positifs.
-            mov rdi, qword[display_name]
-            mov rsi, qword[window]
-            mov rdx, qword[gc]
-            mov ecx, dword[i]
-            mov r8d, dword[j]
-            call XDrawPoint
-
-            next_indirect:
-                inc dword[j]
-                cmp dword[j], 400
-                jbe boucle_j_indirect
-            ;FIN BOUCLE J
-
-    inc dword[i]
-    cmp dword[i], 400
-    jb boucle_i_indirect
-    ; FIN BOUCLE I
+    jb boucle_i
+    ; Fin boucle i
 
     jmp flush
 
