@@ -1,4 +1,3 @@
-; external functions from X11 library
 extern XOpenDisplay
 extern XDisplayName
 extern XCloseDisplay
@@ -14,7 +13,6 @@ extern XDrawPoint
 extern XFillArc
 extern XNextEvent
 
-; external functions from stdio library (ld-linux-x86-64.so.2)    
 extern printf
 extern exit
 
@@ -65,11 +63,9 @@ section .text
 global main
 main:
     xor rdi,rdi
-    call XOpenDisplay	; Création de display
-    mov qword[display_name],rax	; rax=nom du display
+    call XOpenDisplay	
+    mov qword[display_name],rax	
 
-    ; display_name structure
-    ; screen = DefaultScreen(display_name);
     mov rax,qword[display_name]
     mov eax,dword[rax+0xe0]
     mov dword[screen],eax
@@ -83,9 +79,9 @@ main:
     mov rsi, rbx
     mov rdx, 10
     mov rcx, 10
-    mov r8, 400	; largeur
-    mov r9, 400	; hauteur
-    push 0xFFFFFF	; background  0xRRGGBB
+    mov r8, 400	
+    mov r9, 400	
+    push 0xFFFFFF	
     push 0x00FF00
     push 1
     call XCreateSimpleWindow
@@ -93,7 +89,7 @@ main:
 
     mov rdi, qword[display_name]
     mov rsi, qword[window]
-    mov rdx, 131077 ;131072
+    mov rdx, 131077 
     call XSelectInput
 
     mov rdi, qword[display_name]
@@ -106,13 +102,13 @@ main:
     call XCreateGC
     mov qword[gc],rax
 
-boucle: ; boucle de gestion des évènements
+boucle: 
     mov rdi, qword[display_name]
     mov rsi, event
     call XNextEvent
 
-    cmp dword[event], ConfigureNotify	; à l'apparition de la fenêtre
-    je draw						        ; on saute au label 'dessin'
+    cmp dword[event], ConfigureNotify	
+    je draw						        
 
 mov dword[count], 0
 draw:
@@ -133,62 +129,60 @@ draw:
         jb generation_y
 
 draw_triangle:
-    ; On définit la couleur du trait.
     mov rdi, qword[display_name]
     mov rsi, qword[gc]
-    mov edx, 0x000000	; Couleur du crayon ; noir
+    mov edx, 0x000000	
     call XSetForeground
 
-    ; On dessine le trait du point 1 au point 2.
     mov rdi, qword[display_name]
     mov rsi, qword[window]
     mov rdx, qword[gc]
-    mov ecx, dword[array_x]	; coordonnée source en x
-    mov r8d, dword[array_y]	; coordonnée source en y
-    mov r9d, dword[array_x+1*DWORD]	; coordonnée destination en x
-    push qword[array_y+1*DWORD]		; coordonnée destination en y
+    mov ecx, dword[array_x]	
+    mov r8d, dword[array_y]	
+    mov r9d, dword[array_x+1*DWORD]	
+    push qword[array_y+1*DWORD]		
     call XDrawLine
 
-    ; On dessine le trait du point 1 au point 3.
     mov rdi, qword[display_name]
     mov rsi, qword[window]
     mov rdx, qword[gc]
-    mov ecx, dword[array_x]	; coordonnée source en x
-    mov r8d, dword[array_y]	; coordonnée source en y
-    mov r9d, dword[array_x+2*DWORD]	; coordonnée destination en x
-    push qword[array_y+2*DWORD]		; coordonnée destination en y
+    mov ecx, dword[array_x]	
+    mov r8d, dword[array_y]	
+    mov r9d, dword[array_x+2*DWORD]	
+    push qword[array_y+2*DWORD]		
     call XDrawLine
 
-    ; On dessine le trait du point 2 au point 3.
     mov rdi, qword[display_name]
     mov rsi, qword[window]
     mov rdx, qword[gc]
-    mov ecx, dword[array_x+1*DWORD]	; coordonnée source en x
-    mov r8d, dword[array_y+1*DWORD]	; coordonnée source en y
-    mov r9d, dword[array_x+2*DWORD]	; coordonnée destination en x
-    push qword[array_y+2*DWORD]		; coordonnée destination en y
+    mov ecx, dword[array_x+1*DWORD]	
+    mov r8d, dword[array_y+1*DWORD]	
+    mov r9d, dword[array_x+2*DWORD]	
+    push qword[array_y+2*DWORD]		
     call XDrawLine
+
+    cmp dword[color_counter], 6
+    je reset_color
+    inc dword[color_counter]
+    jmp set_color
 
     reset_color:
+        mov dword[color_counter], 0
+
+    set_color:
         mov rdi, qword[display_name]
         mov rsi, qword[gc]
         mov ecx, [color_counter]
         mov edx, [colors+ecx*DWORD]
         call XSetForeground
 
-        inc dword[color_counter]
-        cmp dword[color_counter], 6
-        je reset_color
+    mov eax, dword[array_x+1*DWORD]          
+    mov ebx, dword[array_y+1*DWORD]          
+    mov ecx, dword[array_x]                  
+    mov edx, dword[array_y]                  
+    mov r8d, dword[array_x+2*DWORD]          
+    mov r9d, dword[array_y+2*DWORD]          
 
-    ; Récupération des coordonnées des points A, B, et C dans les tableaux array_x et array_y
-    mov eax, dword[array_x+1*DWORD]          ;  bx
-    mov ebx, dword[array_y+1*DWORD]          ;  by
-    mov ecx, dword[array_x]                  ;  ax
-    mov edx, dword[array_y]                  ;  ay
-    mov r8d, dword[array_x+2*DWORD]          ;  Cx
-    mov r9d, dword[array_y+2*DWORD]          ;  Cy
-
-    ; Comparaison du résultat avec 0
     call get_determinant
     mov dword[triangle_determinant], ecx
 
@@ -196,7 +190,6 @@ draw_triangle:
     boucle_i:
         mov dword[j], 0
         boucle_j:
-            ; Calcul AB -> AP.
             mov eax, [array_x]
             mov ebx, [array_y]
             mov ecx, [array_x+1*DWORD]
@@ -206,7 +199,6 @@ draw_triangle:
             call get_determinant
             mov dword[res_a], ecx
 
-            ; Calcul BC -> BP.
             mov eax, [array_x+1*DWORD]
             mov ebx, [array_y+1*DWORD]
             mov ecx, [array_x+2*DWORD]
@@ -216,7 +208,6 @@ draw_triangle:
             call get_determinant
             mov dword[res_b], ecx
 
-            ; Calcul CA -> CP.
             mov eax, [array_x+2*DWORD]
             mov ebx, [array_y+2*DWORD]
             mov ecx, [array_x]
@@ -249,7 +240,6 @@ draw_triangle:
                 jmp draw_point
 
             draw_point:
-                ; On dessine le point si tout les determinants sont positifs.
                 mov rdi, qword[display_name]
                 mov rsi, qword[window]
                 mov rdx, qword[gc]
@@ -261,17 +251,14 @@ draw_triangle:
                 inc dword[j]
                 cmp dword[j], 400
                 jbe boucle_j
-            ; Fin boucle j
 
     inc dword[i]
     cmp dword[i], 400
     jb boucle_i
-    ; Fin boucle i
 
     jmp flush
 
 flush:
-    ; Fait en sorte de dessiner le bon nombre de triangle.
     inc dword[count]
     cmp dword[count], number_triangle
     jb draw
@@ -280,8 +267,6 @@ flush:
     call XFlush
 
 end:
-    ; Obligé, sinon le programme dessinait un triangle en plus :(
-
     mov rdi,qword[display_name]
     mov rsi,event
     call XNextEvent
@@ -299,27 +284,26 @@ closeDisplay:
 
 global random_number
 random_number:
-    rdrand r15          ; Génération d'un nombre aléatoire.
-    jnc random_number   ; Si CF=0, on recommence.
+    rdrand r15
+    jnc random_number  
 
-    ; Effectue un module 400 sur le nombre aléatoire.
-    xor rdx, rdx        ; Initialiser RDX à zéro.
+    xor rdx, rdx        
     mov rax, r15
-    mov rbx, 400        ; Copier 400 dans RBX.
-    div rbx             ; Diviser RAX par 400.
-    mov r15, rdx        ; Copie rax dans r15, qui nous sert à stocker la valeur aléatoire.
+    mov rbx, 400        
+    div rbx            
+    mov r15, rdx        
     ret
 
 global get_determinant
 get_determinant:
-    sub ecx, eax    ; bx - ax
-    sub edx, ebx    ; by - ay
+    sub ecx, eax   
+    sub edx, ebx    
 
-    sub r8d, eax    ; px - ax
-    sub r9d, ebx    ; py - ay
+    sub r8d, eax   
+    sub r9d, ebx    
 
-    imul ecx, r9d   ; bx * py
-    imul r8d, edx   ; px * by
+    imul ecx, r9d   
+    imul r8d, edx   
 
-    sub ecx, r8d    ; Resultat
+    sub ecx, r8d 
     ret
